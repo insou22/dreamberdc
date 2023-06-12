@@ -275,15 +275,18 @@ fn parse_class_decl(i: Span<'_>) -> Result<'_, ClassDecl> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_expr_stmt(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_expr_stmt(i: Span<'_>) -> Result<'_, ExpressionStatement> {
     map(
         tuple((parse_expr, comment_multispace0, parse_end_statement)),
-        |(expr, _, _)| expr,
+        |(expr, _, term)| ExpressionStatement {
+            expr,
+            debug: term.is_debug(),
+        },
     )(i)
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_expr(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_expr(i: Span<'_>) -> Result<'_, Expression> {
     parse_four_eq(i)
 }
 
@@ -319,11 +322,11 @@ fn parse_assignment(i: Span<'_>) -> Result<'_, AssignmentStatement> {
             comment_multispace0,
             parse_end_statement,
         )),
-        |(decl_type, _, lhs, _, _, _, rhs, _, importance)| AssignmentStatement {
+        |(decl_type, _, lhs, _, _, _, rhs, _, termination)| AssignmentStatement {
             decl_type,
             lhs,
             rhs,
-            importance,
+            termination,
         },
     )(i)
 }
@@ -389,7 +392,10 @@ fn parse_return(i: Span<'_>) -> Result<'_, ReturnStatement> {
             comment_multispace0,
             parse_end_statement,
         )),
-        |(_, _, value, _, _)| ReturnStatement { value },
+        |(_, _, value, _, term)| ReturnStatement {
+            value,
+            debug: term.is_debug(),
+        },
     )(i)
 }
 
@@ -403,7 +409,10 @@ fn parse_delete(i: Span<'_>) -> Result<'_, DeleteStatement> {
             comment_multispace0,
             parse_end_statement,
         )),
-        |(_, _, target, _, _)| DeleteStatement { target },
+        |(_, _, target, _, term)| DeleteStatement {
+            target,
+            debug: term.is_debug(),
+        },
     )(i)
 }
 
@@ -456,7 +465,7 @@ fn parse_noop(i: Span<'_>) -> Result<'_, NoopStatement> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_four_eq(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_four_eq(i: Span<'_>) -> Result<'_, Expression> {
     map(
         tuple((
             parse_three_eq,
@@ -472,7 +481,7 @@ fn parse_four_eq(i: Span<'_>) -> Result<'_, Expr> {
         )),
         |(lhs, rhs)| {
             rhs.into_iter().fold(lhs, |acc, value| {
-                Expr::FourEq(FourEqExpr {
+                Expression::FourEq(FourEqExpr {
                     lhs: Box::new(acc),
                     rhs: value,
                 })
@@ -482,7 +491,7 @@ fn parse_four_eq(i: Span<'_>) -> Result<'_, Expr> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_three_eq(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_three_eq(i: Span<'_>) -> Result<'_, Expression> {
     map(
         tuple((
             parse_two_eq,
@@ -498,7 +507,7 @@ fn parse_three_eq(i: Span<'_>) -> Result<'_, Expr> {
         )),
         |(lhs, rhs)| {
             rhs.into_iter().fold(lhs, |acc, value| {
-                Expr::ThreeEq(ThreeEqExpr {
+                Expression::ThreeEq(ThreeEqExpr {
                     lhs: Box::new(acc),
                     rhs: value,
                 })
@@ -508,7 +517,7 @@ fn parse_three_eq(i: Span<'_>) -> Result<'_, Expr> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_two_eq(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_two_eq(i: Span<'_>) -> Result<'_, Expression> {
     map(
         tuple((
             parse_loose_add_sub,
@@ -524,7 +533,7 @@ fn parse_two_eq(i: Span<'_>) -> Result<'_, Expr> {
         )),
         |(lhs, rhs)| {
             rhs.into_iter().fold(lhs, |acc, value| {
-                Expr::TwoEq(TwoEqExpr {
+                Expression::TwoEq(TwoEqExpr {
                     lhs: Box::new(acc),
                     rhs: value,
                 })
@@ -534,7 +543,7 @@ fn parse_two_eq(i: Span<'_>) -> Result<'_, Expr> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_loose_add_sub(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_loose_add_sub(i: Span<'_>) -> Result<'_, Expression> {
     map(
         tuple((
             parse_loose_mul_div,
@@ -550,11 +559,11 @@ fn parse_loose_add_sub(i: Span<'_>) -> Result<'_, Expr> {
         )),
         |(lhs, rhs)| {
             rhs.into_iter().fold(lhs, |acc, (tag, value)| match tag {
-                '+' => Expr::LooseAdd(LooseAddExpr {
+                '+' => Expression::LooseAdd(LooseAddExpr {
                     lhs: Box::new(acc),
                     rhs: value,
                 }),
-                '-' => Expr::LooseSub(LooseSubExpr {
+                '-' => Expression::LooseSub(LooseSubExpr {
                     lhs: Box::new(acc),
                     rhs: value,
                 }),
@@ -565,7 +574,7 @@ fn parse_loose_add_sub(i: Span<'_>) -> Result<'_, Expr> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_loose_mul_div(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_loose_mul_div(i: Span<'_>) -> Result<'_, Expression> {
     map(
         tuple((
             parse_tight_add_sub,
@@ -581,11 +590,11 @@ fn parse_loose_mul_div(i: Span<'_>) -> Result<'_, Expr> {
         )),
         |(lhs, rhs)| {
             rhs.into_iter().fold(lhs, |acc, (tag, value)| match tag {
-                '*' => Expr::LooseMul(LooseMulExpr {
+                '*' => Expression::LooseMul(LooseMulExpr {
                     lhs: Box::new(acc),
                     rhs: value,
                 }),
-                '/' => Expr::LooseDiv(LooseDivExpr {
+                '/' => Expression::LooseDiv(LooseDivExpr {
                     lhs: Box::new(acc),
                     rhs: value,
                 }),
@@ -596,7 +605,7 @@ fn parse_loose_mul_div(i: Span<'_>) -> Result<'_, Expr> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_tight_add_sub(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_tight_add_sub(i: Span<'_>) -> Result<'_, Expression> {
     map(
         tuple((
             parse_tight_mul_div,
@@ -607,11 +616,11 @@ fn parse_tight_add_sub(i: Span<'_>) -> Result<'_, Expr> {
         )),
         |(lhs, rhs)| {
             rhs.into_iter().fold(lhs, |acc, (tag, value)| match tag {
-                '+' => Expr::TightAdd(TightAddExpr {
+                '+' => Expression::TightAdd(TightAddExpr {
                     lhs: Box::new(acc),
                     rhs: value,
                 }),
-                '-' => Expr::TightSub(TightSubExpr {
+                '-' => Expression::TightSub(TightSubExpr {
                     lhs: Box::new(acc),
                     rhs: value,
                 }),
@@ -622,7 +631,7 @@ fn parse_tight_add_sub(i: Span<'_>) -> Result<'_, Expr> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_tight_mul_div(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_tight_mul_div(i: Span<'_>) -> Result<'_, Expression> {
     map(
         tuple((
             parse_member_fn_call,
@@ -633,11 +642,11 @@ fn parse_tight_mul_div(i: Span<'_>) -> Result<'_, Expr> {
         )),
         |(lhs, rhs)| {
             rhs.into_iter().fold(lhs, |acc, (tag, value)| match tag {
-                '*' => Expr::TightMul(TightMulExpr {
+                '*' => Expression::TightMul(TightMulExpr {
                     lhs: Box::new(acc),
                     rhs: value,
                 }),
-                '/' => Expr::TightDiv(TightDivExpr {
+                '/' => Expression::TightDiv(TightDivExpr {
                     lhs: Box::new(acc),
                     rhs: value,
                 }),
@@ -648,7 +657,7 @@ fn parse_tight_mul_div(i: Span<'_>) -> Result<'_, Expr> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_member_fn_call(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_member_fn_call(i: Span<'_>) -> Result<'_, Expression> {
     map(
         tuple((
             parse_unary_op_expr,
@@ -660,7 +669,7 @@ fn parse_member_fn_call(i: Span<'_>) -> Result<'_, Expr> {
                     parse_free_fn_call,
                 )),
                 |(_, _, _, value)| match value {
-                    Expr::FreeFnCall(fn_call) => fn_call,
+                    Expression::FreeFnCall(fn_call) => fn_call,
                     _ => unreachable!(),
                 },
             )),
@@ -668,7 +677,7 @@ fn parse_member_fn_call(i: Span<'_>) -> Result<'_, Expr> {
         |(lhs, rhs)| {
             rhs.into_iter()
                 .fold(lhs, |acc, FreeFnCallExpr { fn_name, params }| {
-                    Expr::MemberFnCall(MemberFnCallExpr {
+                    Expression::MemberFnCall(MemberFnCallExpr {
                         on: Box::new(acc),
                         fn_name,
                         params,
@@ -679,7 +688,7 @@ fn parse_member_fn_call(i: Span<'_>) -> Result<'_, Expr> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_unary_op_expr(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_unary_op_expr(i: Span<'_>) -> Result<'_, Expression> {
     alt((
         parse_not,
         parse_previous,
@@ -690,23 +699,23 @@ fn parse_unary_op_expr(i: Span<'_>) -> Result<'_, Expr> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_not(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_not(i: Span<'_>) -> Result<'_, Expression> {
     map(
         tuple((char(';'), comment_multispace0, boxed(parse_unary_op_expr))),
-        |(_, _, value)| Expr::Not(value),
+        |(_, _, value)| Expression::Not(value),
     )(i)
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_previous(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_previous(i: Span<'_>) -> Result<'_, Expression> {
     map(
         tuple((tag("previous"), comment_multispace1, parse_ident)),
-        |(_, _, variable)| Expr::Previous(PreviousExpr { variable }),
+        |(_, _, variable)| Expression::Previous(PreviousExpr { variable }),
     )(i)
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_await_next(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_await_next(i: Span<'_>) -> Result<'_, Expression> {
     map(
         tuple((
             tag("await"),
@@ -715,20 +724,20 @@ fn parse_await_next(i: Span<'_>) -> Result<'_, Expr> {
             comment_multispace1,
             parse_ident,
         )),
-        |(_, _, _, _, variable)| Expr::AwaitNext(AwaitNextExpr { variable }),
+        |(_, _, _, _, variable)| Expression::AwaitNext(AwaitNextExpr { variable }),
     )(i)
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_new(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_new(i: Span<'_>) -> Result<'_, Expression> {
     map(
         tuple((tag("new"), comment_multispace1, parse_ident)),
-        |(_, _, class_name)| Expr::New(NewExpr { class_name }),
+        |(_, _, class_name)| Expression::New(NewExpr { class_name }),
     )(i)
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_base_expr(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_base_expr(i: Span<'_>) -> Result<'_, Expression> {
     alt((
         parse_array,
         parse_free_fn_call,
@@ -749,7 +758,7 @@ fn parse_base_expr(i: Span<'_>) -> Result<'_, Expr> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_array(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_array(i: Span<'_>) -> Result<'_, Expression> {
     map(
         tuple((
             tag("["),
@@ -763,12 +772,12 @@ fn parse_array(i: Span<'_>) -> Result<'_, Expr> {
             comment_multispace0,
             tag("]"),
         )),
-        |(_, _, elems, _, _, _, _)| Expr::Array(ArrayExpr { elems }),
+        |(_, _, elems, _, _, _, _)| Expression::Array(ArrayExpr { elems }),
     )(i)
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_free_fn_call(i: Span<'_>) -> Result<'_, Expr> {
+fn parse_free_fn_call(i: Span<'_>) -> Result<'_, Expression> {
     map(
         tuple((
             parse_ident,
@@ -785,24 +794,24 @@ fn parse_free_fn_call(i: Span<'_>) -> Result<'_, Expr> {
             tag(")"),
         )),
         |(fn_name, _, _, _, params, _, _, _, _)| {
-            Expr::FreeFnCall(FreeFnCallExpr { fn_name, params })
+            Expression::FreeFnCall(FreeFnCallExpr { fn_name, params })
         },
     )(i)
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_bool_lit_expr(i: Span<'_>) -> Result<'_, Expr> {
-    map(parse_bool_lit, Expr::BoolLit)(i)
+fn parse_bool_lit_expr(i: Span<'_>) -> Result<'_, Expression> {
+    map(parse_bool_lit, Expression::BoolLit)(i)
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_string_lit_expr(i: Span<'_>) -> Result<'_, Expr> {
-    map(parse_string_lit, Expr::StringLit)(i)
+fn parse_string_lit_expr(i: Span<'_>) -> Result<'_, Expression> {
+    map(parse_string_lit, Expression::StringLit)(i)
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_numeric_lit_expr(i: Span<'_>) -> Result<'_, Expr> {
-    map(parse_numeric_lit, Expr::NumericLit)(i)
+fn parse_numeric_lit_expr(i: Span<'_>) -> Result<'_, Expression> {
+    map(parse_numeric_lit, Expression::NumericLit)(i)
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
@@ -867,8 +876,11 @@ fn parse_ident(i: Span<'_>) -> Result<'_, Ident> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_end_statement(i: Span<'_>) -> Result<'_, usize> {
-    many1_count(char('!'))(i)
+fn parse_end_statement(i: Span<'_>) -> Result<'_, StatementTermination> {
+    alt((
+        map(char('?'), |_| StatementTermination::Debug),
+        map(many1_count(char('!')), StatementTermination::Importance),
+    ))(i)
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]

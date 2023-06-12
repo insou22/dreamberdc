@@ -21,7 +21,7 @@ pub enum ClassItem {
 
 #[derive(Debug)]
 pub enum Statement {
-    Expr(Expr),
+    Expr(ExpressionStatement),
     If(IfStatement),
     Assignment(AssignmentStatement),
     When(WhenStatement),
@@ -31,7 +31,13 @@ pub enum Statement {
 }
 
 #[derive(Debug)]
-pub enum Expr {
+pub struct ExpressionStatement {
+    pub expr: Expression,
+    pub debug: bool,
+}
+
+#[derive(Debug)]
+pub enum Expression {
     /// Lowest precedence first
 
     /// Infix
@@ -49,7 +55,7 @@ pub enum Expr {
     MemberFnCall(MemberFnCallExpr),
 
     /// Prefix
-    Not(Box<Expr>),
+    Not(Box<Expression>),
     Previous(PreviousExpr),
     AwaitNext(AwaitNextExpr),
     New(NewExpr),
@@ -95,85 +101,85 @@ pub struct NumericLit {
 #[derive(Debug)]
 pub struct FreeFnCallExpr {
     pub fn_name: Ident,
-    pub params: Vec<Expr>,
+    pub params: Vec<Expression>,
 }
 
 #[derive(Debug)]
 pub struct MemberFnCallExpr {
-    pub on: Box<Expr>,
+    pub on: Box<Expression>,
     pub fn_name: Ident,
-    pub params: Vec<Expr>,
+    pub params: Vec<Expression>,
 }
 
 #[derive(Debug)]
 pub struct ArrayExpr {
-    pub elems: Vec<Expr>,
+    pub elems: Vec<Expression>,
 }
 
 #[derive(Debug)]
 pub struct TightMulExpr {
-    pub lhs: Box<Expr>,
-    pub rhs: Box<Expr>,
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
 }
 
 #[derive(Debug)]
 pub struct TightDivExpr {
-    pub lhs: Box<Expr>,
-    pub rhs: Box<Expr>,
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
 }
 
 #[derive(Debug)]
 pub struct TightAddExpr {
-    pub lhs: Box<Expr>,
-    pub rhs: Box<Expr>,
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
 }
 
 #[derive(Debug)]
 pub struct TightSubExpr {
-    pub lhs: Box<Expr>,
-    pub rhs: Box<Expr>,
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
 }
 
 #[derive(Debug)]
 pub struct LooseMulExpr {
-    pub lhs: Box<Expr>,
-    pub rhs: Box<Expr>,
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
 }
 
 #[derive(Debug)]
 pub struct LooseDivExpr {
-    pub lhs: Box<Expr>,
-    pub rhs: Box<Expr>,
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
 }
 
 #[derive(Debug)]
 pub struct LooseAddExpr {
-    pub lhs: Box<Expr>,
-    pub rhs: Box<Expr>,
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
 }
 
 #[derive(Debug)]
 pub struct LooseSubExpr {
-    pub lhs: Box<Expr>,
-    pub rhs: Box<Expr>,
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
 }
 
 #[derive(Debug)]
 pub struct TwoEqExpr {
-    pub lhs: Box<Expr>,
-    pub rhs: Box<Expr>,
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
 }
 
 #[derive(Debug)]
 pub struct ThreeEqExpr {
-    pub lhs: Box<Expr>,
-    pub rhs: Box<Expr>,
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
 }
 
 #[derive(Debug)]
 pub struct FourEqExpr {
-    pub lhs: Box<Expr>,
-    pub rhs: Box<Expr>,
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
 }
 
 #[derive(Debug)]
@@ -193,7 +199,7 @@ pub struct NewExpr {
 
 #[derive(Debug)]
 pub struct IfStatement {
-    pub cond: Box<Expr>,
+    pub cond: Box<Expression>,
     pub body: Vec<Statement>,
 }
 
@@ -201,8 +207,19 @@ pub struct IfStatement {
 pub struct AssignmentStatement {
     pub decl_type: DeclType,
     pub lhs: Literal,
-    pub rhs: Expr,
-    pub importance: usize,
+    pub rhs: Expression,
+    pub termination: StatementTermination,
+}
+#[derive(Debug)]
+pub enum StatementTermination {
+    Debug,
+    Importance(usize),
+}
+
+impl StatementTermination {
+    pub fn is_debug(&self) -> bool {
+        matches!(self, Self::Debug)
+    }
 }
 
 #[derive(Debug)]
@@ -222,18 +239,20 @@ pub enum DeclType {
 #[derive(Debug)]
 pub struct WhenStatement {
     pub item: Literal,
-    pub equals: Expr,
+    pub equals: Expression,
     pub body: Vec<Statement>,
 }
 
 #[derive(Debug)]
 pub struct ReturnStatement {
-    pub value: Expr,
+    pub value: Expression,
+    pub debug: bool,
 }
 
 #[derive(Debug)]
 pub struct DeleteStatement {
     pub target: DeleteTarget,
+    pub debug: bool,
 }
 
 #[derive(Debug)]
@@ -258,7 +277,7 @@ pub struct FnDecl {
 
 #[derive(Debug)]
 pub enum FnBody {
-    ExprBody(Expr),
+    ExprBody(Expression),
     BlockBody(Vec<Statement>),
 }
 
