@@ -1,0 +1,137 @@
+Program {
+    items: [
+        FnDecl(
+            FnDecl {
+                is_async: true,
+                keyword: "func",
+                name: Ident {
+                    name: "count",
+                },
+                args: [],
+                body: BlockBody(
+                    [
+                        Expr(
+                            ExpressionStatement {
+                                expr: FreeFnCall(
+                                    FreeFnCallExpr {
+                                        fn_name: Ident {
+                                            name: "print",
+                                        },
+                                        params: [
+                                            NumericLit(
+                                                NumericLit {
+                                                    digits: "2",
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                debug: false,
+                            },
+                        ),
+                        Noop(
+                            NoopStatement,
+                        ),
+                        Expr(
+                            ExpressionStatement {
+                                expr: FreeFnCall(
+                                    FreeFnCallExpr {
+                                        fn_name: Ident {
+                                            name: "print",
+                                        },
+                                        params: [
+                                            NumericLit(
+                                                NumericLit {
+                                                    digits: "5",
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                debug: false,
+                            },
+                        ),
+                    ],
+                ),
+            },
+        ),
+        Statement(
+            Expr(
+                ExpressionStatement {
+                    expr: FreeFnCall(
+                        FreeFnCallExpr {
+                            fn_name: Ident {
+                                name: "count",
+                            },
+                            params: [],
+                        },
+                    ),
+                    debug: false,
+                },
+            ),
+        ),
+        Statement(
+            Expr(
+                ExpressionStatement {
+                    expr: FreeFnCall(
+                        FreeFnCallExpr {
+                            fn_name: Ident {
+                                name: "print",
+                            },
+                            params: [
+                                NumericLit(
+                                    NumericLit {
+                                        digits: "1",
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                    debug: false,
+                },
+            ),
+        ),
+        Statement(
+            Expr(
+                ExpressionStatement {
+                    expr: FreeFnCall(
+                        FreeFnCallExpr {
+                            fn_name: Ident {
+                                name: "print",
+                            },
+                            params: [
+                                NumericLit(
+                                    NumericLit {
+                                        digits: "3",
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                    debug: false,
+                },
+            ),
+        ),
+        Statement(
+            Expr(
+                ExpressionStatement {
+                    expr: FreeFnCall(
+                        FreeFnCallExpr {
+                            fn_name: Ident {
+                                name: "print",
+                            },
+                            params: [
+                                NumericLit(
+                                    NumericLit {
+                                        digits: "4",
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                    debug: false,
+                },
+            ),
+        ),
+    ],
+}

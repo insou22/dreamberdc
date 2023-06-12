@@ -1,0 +1,6 @@
+const const name = "Lu"!!
+const const name = "Luke"!
+print(name)! // "Lu"
+
+const const name = "Lu or Luke (either is fine)"!!!!!!!!!
+print(name)! // "Lu or Luke (either is fine)"

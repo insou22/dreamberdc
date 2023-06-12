@@ -1,0 +1,4 @@
+const const pi = 3.14!
+print(pi ==== pi)! //true
+print(3.14 ==== 3.14)! //true
+print(3.14 ==== pi)! //false

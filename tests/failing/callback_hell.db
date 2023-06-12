@@ -1,0 +1,5 @@
+addEventListener("click", (e) => {
+    requestAnimationFrame(() => {
+        print("You clicked on the page
+        
+        // This is fine

@@ -1,0 +1,80 @@
+Program {
+    items: [
+        ClassDecl(
+            ClassDecl {
+                keyword: "class",
+                name: Ident {
+                    name: "Player",
+                },
+                body: [
+                    Statement(
+                        Assignment(
+                            AssignmentStatement {
+                                decl_type: ConstVar,
+                                lhs: Ident(
+                                    Ident {
+                                        name: "health",
+                                    },
+                                ),
+                                rhs: NumericLit(
+                                    NumericLit {
+                                        digits: "10",
+                                    },
+                                ),
+                                termination: Importance(
+                                    1,
+                                ),
+                            },
+                        ),
+                    ),
+                ],
+            },
+        ),
+        Statement(
+            Assignment(
+                AssignmentStatement {
+                    decl_type: ConstVar,
+                    lhs: Ident(
+                        Ident {
+                            name: "player1",
+                        },
+                    ),
+                    rhs: New(
+                        NewExpr {
+                            class_name: Ident {
+                                name: "Player",
+                            },
+                            params: [],
+                        },
+                    ),
+                    termination: Importance(
+                        1,
+                    ),
+                },
+            ),
+        ),
+        Statement(
+            Assignment(
+                AssignmentStatement {
+                    decl_type: ConstVar,
+                    lhs: Ident(
+                        Ident {
+                            name: "player2",
+                        },
+                    ),
+                    rhs: New(
+                        NewExpr {
+                            class_name: Ident {
+                                name: "Player",
+                            },
+                            params: [],
+                        },
+                    ),
+                    termination: Importance(
+                        1,
+                    ),
+                },
+            ),
+        ),
+    ],
+}

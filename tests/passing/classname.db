@@ -1,0 +1,3 @@
+className Player {
+   const var health = 10!
+}

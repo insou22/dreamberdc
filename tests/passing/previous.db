@@ -1,0 +1,4 @@
+const var score = 5!
+score++!
+print(score)! //6
+print(previous score)! //5

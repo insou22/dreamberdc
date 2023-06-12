@@ -27,6 +27,10 @@ pub enum Statement {
     When(WhenStatement),
     Return(ReturnStatement),
     Delete(DeleteStatement),
+    PlusEq(PlusEqStatement),
+    MinusEq(MinusEqStatement),
+    TimesEq(TimesEqStatement),
+    DivideEq(DivideEqStatement),
     Noop(NoopStatement),
 }
 
@@ -44,6 +48,7 @@ pub enum Expression {
     FourEq(FourEqExpr),
     ThreeEq(ThreeEqExpr),
     TwoEq(TwoEqExpr),
+    OneEq(OneEqExpr),
     LooseAdd(LooseAddExpr),
     LooseSub(LooseSubExpr),
     LooseMul(LooseMulExpr),
@@ -59,6 +64,12 @@ pub enum Expression {
     Previous(PreviousExpr),
     AwaitNext(AwaitNextExpr),
     New(NewExpr),
+    PrefixPlusPlus(Box<Expression>),
+    PrefixMinusMinus(Box<Expression>),
+
+    /// Postfix
+    PostfixPlusPlus(Box<Expression>),
+    PostfixMinusMinus(Box<Expression>),
 
     /// Literals
     Array(ArrayExpr),
@@ -66,6 +77,8 @@ pub enum Expression {
     BoolLit(BoolLit),
     StringLit(StringLit),
     NumericLit(NumericLit),
+    Null,
+    Undefined,
 }
 
 #[derive(Debug)]
@@ -165,6 +178,12 @@ pub struct LooseSubExpr {
 }
 
 #[derive(Debug)]
+pub struct OneEqExpr {
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
+}
+
+#[derive(Debug)]
 pub struct TwoEqExpr {
     pub lhs: Box<Expression>,
     pub rhs: Box<Expression>,
@@ -195,6 +214,7 @@ pub struct AwaitNextExpr {
 #[derive(Debug)]
 pub struct NewExpr {
     pub class_name: Ident,
+    pub params: Vec<Expression>,
 }
 
 #[derive(Debug)]
@@ -252,6 +272,34 @@ pub struct ReturnStatement {
 #[derive(Debug)]
 pub struct DeleteStatement {
     pub target: DeleteTarget,
+    pub debug: bool,
+}
+
+#[derive(Debug)]
+pub struct PlusEqStatement {
+    pub ident: Ident,
+    pub expr: Expression,
+    pub debug: bool,
+}
+
+#[derive(Debug)]
+pub struct MinusEqStatement {
+    pub ident: Ident,
+    pub expr: Expression,
+    pub debug: bool,
+}
+
+#[derive(Debug)]
+pub struct TimesEqStatement {
+    pub ident: Ident,
+    pub expr: Expression,
+    pub debug: bool,
+}
+
+#[derive(Debug)]
+pub struct DivideEqStatement {
+    pub ident: Ident,
+    pub expr: Expression,
     pub debug: bool,
 }
 

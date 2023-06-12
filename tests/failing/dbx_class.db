@@ -1,0 +1,4 @@
+funct App() => {
+   // This is fine
+   return <div htmlClassName="greeting">Hello world!</div>
+}

@@ -1,0 +1,13 @@
+class PlayerMaker {
+   function makePlayer() => {
+      class Player {
+         const var health = 10!
+      }
+      const const player = new Player()!
+      return player!
+   }
+}
+
+const const playerMaker = new PlayerMaker()!
+const var player1 = playerMaker.makePlayer()!
+const var player2 = playerMaker.makePlayer()!

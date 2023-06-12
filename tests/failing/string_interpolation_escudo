@@ -1,0 +1,1 @@
+addEventListener("keydown", e => print(`You've pressed: {e$code}`))!

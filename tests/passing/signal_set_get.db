@@ -1,0 +1,4 @@
+const var score = use(0)!
+
+score(9)! // Set the value
+score()?  // Get the value (and print it)

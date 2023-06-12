@@ -1,0 +1,6 @@
+funct App() => {
+   return (
+      <label for="name">Name</label>
+      <input id="name" />
+   )
+}

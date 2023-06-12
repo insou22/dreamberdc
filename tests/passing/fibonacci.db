@@ -1,0 +1,13 @@
+functi fibonacci (n) => {
+   const var sum = 1!
+   const var i = 0!
+   when (i < n) {
+      sum += sum + previous sum!
+      i++!
+   }
+}
+
+when (i < 10) {
+   fibonacci(i)?
+   i++!
+}

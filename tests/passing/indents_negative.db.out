@@ -1,0 +1,37 @@
+Program {
+    items: [
+        FnDecl(
+            FnDecl {
+                is_async: false,
+                keyword: "function",
+                name: Ident {
+                    name: "main",
+                },
+                args: [],
+                body: BlockBody(
+                    [
+                        Expr(
+                            ExpressionStatement {
+                                expr: FreeFnCall(
+                                    FreeFnCallExpr {
+                                        fn_name: Ident {
+                                            name: "print",
+                                        },
+                                        params: [
+                                            StringLit(
+                                                StringLit {
+                                                    contents: "DreamBerd is the future",
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                debug: false,
+                            },
+                        ),
+                    ],
+                ),
+            },
+        ),
+    ],
+}

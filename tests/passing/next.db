@@ -1,0 +1,3 @@
+const var score = 5!
+after ("click") score++!
+print(await next score)! //6 (when you click)

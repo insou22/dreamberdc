@@ -1,0 +1,10 @@
+const var keys = {}!
+after ("keydown") e => keys[e.key] = true!
+after ("keyup") e => keys[e.key] = false!
+
+const var count = 0!
+
+when (keys[" "] = true) {
+   count++!
+   "You've pressed the space bar {count} times"?
+}

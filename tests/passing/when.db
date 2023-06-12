@@ -1,0 +1,4 @@
+const var health = 10!
+when (health = 0) {
+   print("You lose")!
+}

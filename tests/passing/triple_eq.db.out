@@ -1,0 +1,25 @@
+Program {
+    items: [
+        Statement(
+            Expr(
+                ExpressionStatement {
+                    expr: ThreeEq(
+                        ThreeEqExpr {
+                            lhs: NumericLit(
+                                NumericLit {
+                                    digits: "3.14",
+                                },
+                            ),
+                            rhs: StringLit(
+                                StringLit {
+                                    contents: "3.14",
+                                },
+                            ),
+                        },
+                    ),
+                    debug: false,
+                },
+            ),
+        ),
+    ],
+}

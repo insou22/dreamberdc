@@ -1,0 +1,25 @@
+Program {
+    items: [
+        Statement(
+            Expr(
+                ExpressionStatement {
+                    expr: TwoEq(
+                        TwoEqExpr {
+                            lhs: NumericLit(
+                                NumericLit {
+                                    digits: "3.14",
+                                },
+                            ),
+                            rhs: StringLit(
+                                StringLit {
+                                    contents: "3.14",
+                                },
+                            ),
+                        },
+                    ),
+                    debug: false,
+                },
+            ),
+        ),
+    ],
+}

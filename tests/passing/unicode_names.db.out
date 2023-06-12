@@ -1,0 +1,62 @@
+Program {
+    items: [
+        Statement(
+            Assignment(
+                AssignmentStatement {
+                    decl_type: ConstConst,
+                    lhs: Ident(
+                        Ident {
+                            name: "firstAlphabetLetter",
+                        },
+                    ),
+                    rhs: StringLit(
+                        StringLit {
+                            contents: "A",
+                        },
+                    ),
+                    termination: Importance(
+                        1,
+                    ),
+                },
+            ),
+        ),
+        Statement(
+            Assignment(
+                AssignmentStatement {
+                    decl_type: VarConst,
+                    lhs: Ident(
+                        Ident {
+                            name: "👍",
+                        },
+                    ),
+                    rhs: BoolLit(
+                        True,
+                    ),
+                    termination: Importance(
+                        1,
+                    ),
+                },
+            ),
+        ),
+        Statement(
+            Assignment(
+                AssignmentStatement {
+                    decl_type: VarVar,
+                    lhs: Ident(
+                        Ident {
+                            name: "1\u{fe0f}\u{20e3}",
+                        },
+                    ),
+                    rhs: NumericLit(
+                        NumericLit {
+                            digits: "1",
+                        },
+                    ),
+                    termination: Importance(
+                        1,
+                    ),
+                },
+            ),
+        ),
+    ],
+}

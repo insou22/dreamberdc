@@ -1,0 +1,7 @@
+const const score = 5!
+print(score)! //5
+
+=====================
+
+const const score = 3!
+print(score)! //3

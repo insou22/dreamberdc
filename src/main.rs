@@ -1,12 +1,9 @@
 use std::{fs::File, io::Read};
 
+use dreamberdc::parser::parse_program;
 use nom_locate::LocatedSpan;
 #[cfg(feature = "trace")]
 use nom_tracable::{cumulative_histogram, histogram, TracableInfo};
-use parser::parse_program;
-
-pub mod parser;
-pub mod types;
 
 fn main() {
     let file_name = match std::env::args().nth(1) {

@@ -1,9 +1,9 @@
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag},
-    character::complete::{char, digit1, multispace1, none_of, space0, space1},
-    combinator::{eof, map, opt, verify},
-    error::{Error, ParseError},
+    character::complete::{anychar, char, digit1, multispace1, none_of, space0, space1},
+    combinator::{eof, map, opt, peek, verify},
+    error::ParseError,
     multi::{many0, many1, many1_count, separated_list0},
     sequence::tuple,
     IResult, Parser,
@@ -21,7 +21,8 @@ use crate::types::*;
 const LEFT_BRACE: char = '{';
 const RIGHT_BRACE: char = '}';
 
-type Result<'a, T> = IResult<Span<'a>, T, Error<Span<'a>>>;
+type Error<'a> = nom::error::Error<Span<'a>>;
+type Result<'a, T> = IResult<Span<'a>, T, Error<'a>>;
 
 #[cfg(feature = "trace")]
 type Span<'a> = LocatedSpan<&'a str, TracableInfo>;
@@ -79,6 +80,10 @@ fn parse_statement(i: Span<'_>) -> Result<'_, Statement> {
         map(parse_when, Statement::When),
         map(parse_return, Statement::Return),
         map(parse_delete, Statement::Delete),
+        map(parse_plus_eq, Statement::PlusEq),
+        map(parse_minus_eq, Statement::MinusEq),
+        map(parse_times_eq, Statement::TimesEq),
+        map(parse_divide_eq, Statement::DivideEq),
         map(parse_noop, Statement::Noop),
     ))(i)?;
 
@@ -87,7 +92,7 @@ fn parse_statement(i: Span<'_>) -> Result<'_, Statement> {
 
 #[cfg_attr(feature = "trace", tracable_parser)]
 fn parse_fn_decl(i: Span<'_>) -> Result<'_, FnDecl> {
-    let (leftover, (is_async, keyword, _, name, _, _, args, _, _, _, _, body)) = tuple((
+    let (leftover, (is_async, keyword, _, name, _, _, args, _, _, _, _, _, body)) = tuple((
         map(opt(tuple((tag("async"), comment_multispace1))), |opt| {
             opt.is_some()
         }),
@@ -103,9 +108,10 @@ fn parse_fn_decl(i: Span<'_>) -> Result<'_, FnDecl> {
                 |(_, ident, _)| ident,
             ),
         ),
+        comment_multispace0,
         tag(")"),
         comment_multispace0,
-        tag("=>"),
+        opt(tag("=>")),
         comment_multispace0,
         parse_fn_body,
     ))(i)?;
@@ -276,18 +282,17 @@ fn parse_class_decl(i: Span<'_>) -> Result<'_, ClassDecl> {
 
 #[cfg_attr(feature = "trace", tracable_parser)]
 fn parse_expr_stmt(i: Span<'_>) -> Result<'_, ExpressionStatement> {
-    map(
-        tuple((parse_expr, comment_multispace0, parse_end_statement)),
-        |(expr, _, term)| ExpressionStatement {
+    map(tuple((parse_expr, parse_end_statement)), |(expr, term)| {
+        ExpressionStatement {
             expr,
             debug: term.is_debug(),
-        },
-    )(i)
+        }
+    })(i)
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
 fn parse_expr(i: Span<'_>) -> Result<'_, Expression> {
-    parse_four_eq(i)
+    parse_eq(i)
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
@@ -417,6 +422,59 @@ fn parse_delete(i: Span<'_>) -> Result<'_, DeleteStatement> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
+fn parse_plus_eq(i: Span<'_>) -> Result<'_, PlusEqStatement> {
+    map(parse_op_eq('+'), |(ident, expr, debug)| PlusEqStatement {
+        ident,
+        expr,
+        debug,
+    })(i)
+}
+
+#[cfg_attr(feature = "trace", tracable_parser)]
+fn parse_minus_eq(i: Span<'_>) -> Result<'_, MinusEqStatement> {
+    map(parse_op_eq('-'), |(ident, expr, debug)| MinusEqStatement {
+        ident,
+        expr,
+        debug,
+    })(i)
+}
+
+#[cfg_attr(feature = "trace", tracable_parser)]
+fn parse_times_eq(i: Span<'_>) -> Result<'_, TimesEqStatement> {
+    map(parse_op_eq('*'), |(ident, expr, debug)| TimesEqStatement {
+        ident,
+        expr,
+        debug,
+    })(i)
+}
+
+#[cfg_attr(feature = "trace", tracable_parser)]
+fn parse_divide_eq(i: Span<'_>) -> Result<'_, DivideEqStatement> {
+    map(parse_op_eq('/'), |(ident, expr, debug)| DivideEqStatement {
+        ident,
+        expr,
+        debug,
+    })(i)
+}
+
+fn parse_op_eq<'a>(op: char) -> impl Parser<Span<'a>, (Ident, Expression, bool), Error<'a>> {
+    move |input| {
+        map(
+            tuple((
+                parse_ident,
+                comment_multispace0,
+                char(op),
+                char('='),
+                comment_multispace0,
+                parse_expr,
+                parse_end_statement,
+            )),
+            |(ident, _, _, _, _, expr, term)| (ident, expr, term.is_debug()),
+        )(input)
+    }
+}
+
+#[cfg_attr(feature = "trace", tracable_parser)]
 fn parse_delete_target(i: Span<'_>) -> Result<'_, DeleteTarget> {
     alt((
         map(parse_numeric_lit, DeleteTarget::Number),
@@ -450,8 +508,8 @@ fn parse_keyword(i: Span<'_>) -> Result<'_, String> {
             tag("noop"),
             tag("previous"),
             tag("await"),
-            tag("next"),
-            tag("new"),
+            tag("next"), // limit of 21 to a tuple
+            alt((tag("new"), tag("null"), tag("undefined"))),
         ))),
     ))(i)
 }
@@ -465,78 +523,42 @@ fn parse_noop(i: Span<'_>) -> Result<'_, NoopStatement> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_four_eq(i: Span<'_>) -> Result<'_, Expression> {
-    map(
-        tuple((
-            parse_three_eq,
-            many0(map(
-                tuple((
-                    comment_multispace0,
-                    tag("===="),
-                    comment_multispace0,
-                    boxed(parse_three_eq),
-                )),
-                |(_, _, _, value)| value,
-            )),
-        )),
-        |(lhs, rhs)| {
-            rhs.into_iter().fold(lhs, |acc, value| {
-                Expression::FourEq(FourEqExpr {
-                    lhs: Box::new(acc),
-                    rhs: value,
-                })
-            })
-        },
-    )(i)
-}
-
-#[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_three_eq(i: Span<'_>) -> Result<'_, Expression> {
-    map(
-        tuple((
-            parse_two_eq,
-            many0(map(
-                tuple((
-                    comment_multispace0,
-                    tag("==="),
-                    comment_multispace0,
-                    boxed(parse_two_eq),
-                )),
-                |(_, _, _, value)| value,
-            )),
-        )),
-        |(lhs, rhs)| {
-            rhs.into_iter().fold(lhs, |acc, value| {
-                Expression::ThreeEq(ThreeEqExpr {
-                    lhs: Box::new(acc),
-                    rhs: value,
-                })
-            })
-        },
-    )(i)
-}
-
-#[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_two_eq(i: Span<'_>) -> Result<'_, Expression> {
+fn parse_eq(i: Span<'_>) -> Result<'_, Expression> {
     map(
         tuple((
             parse_loose_add_sub,
             many0(map(
                 tuple((
                     comment_multispace0,
-                    tag("=="),
+                    map(
+                        alt((tag("===="), tag("==="), tag("=="), tag("="))),
+                        |eq: Span| eq.len(),
+                    ),
                     comment_multispace0,
                     boxed(parse_loose_add_sub),
                 )),
-                |(_, _, _, value)| value,
+                |(_, eq, _, value)| (eq, value),
             )),
         )),
         |(lhs, rhs)| {
-            rhs.into_iter().fold(lhs, |acc, value| {
-                Expression::TwoEq(TwoEqExpr {
+            rhs.into_iter().fold(lhs, |acc, (eq, value)| match eq {
+                1 => Expression::OneEq(OneEqExpr {
                     lhs: Box::new(acc),
                     rhs: value,
-                })
+                }),
+                2 => Expression::TwoEq(TwoEqExpr {
+                    lhs: Box::new(acc),
+                    rhs: value,
+                }),
+                3 => Expression::ThreeEq(ThreeEqExpr {
+                    lhs: Box::new(acc),
+                    rhs: value,
+                }),
+                4 => Expression::FourEq(FourEqExpr {
+                    lhs: Box::new(acc),
+                    rhs: value,
+                }),
+                _ => unreachable!(),
             })
         },
     )(i)
@@ -660,7 +682,7 @@ fn parse_tight_mul_div(i: Span<'_>) -> Result<'_, Expression> {
 fn parse_member_fn_call(i: Span<'_>) -> Result<'_, Expression> {
     map(
         tuple((
-            parse_unary_op_expr,
+            parse_postfix_op_expr,
             many0(map(
                 tuple((
                     comment_multispace0,
@@ -688,8 +710,35 @@ fn parse_member_fn_call(i: Span<'_>) -> Result<'_, Expression> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
-fn parse_unary_op_expr(i: Span<'_>) -> Result<'_, Expression> {
+fn parse_postfix_op_expr(i: Span<'_>) -> Result<'_, Expression> {
     alt((
+        parse_postfix_plus_plus,
+        parse_postfix_minus_minus,
+        parse_prefix_op_expr,
+    ))(i)
+}
+
+#[cfg_attr(feature = "trace", tracable_parser)]
+fn parse_postfix_plus_plus(i: Span<'_>) -> Result<'_, Expression> {
+    map(
+        tuple((boxed(parse_prefix_op_expr), comment_multispace0, tag("++"))),
+        |(expr, _, _)| Expression::PostfixPlusPlus(expr),
+    )(i)
+}
+
+#[cfg_attr(feature = "trace", tracable_parser)]
+fn parse_postfix_minus_minus(i: Span<'_>) -> Result<'_, Expression> {
+    map(
+        tuple((boxed(parse_prefix_op_expr), comment_multispace0, tag("--"))),
+        |(expr, _, _)| Expression::PostfixMinusMinus(expr),
+    )(i)
+}
+
+#[cfg_attr(feature = "trace", tracable_parser)]
+fn parse_prefix_op_expr(i: Span<'_>) -> Result<'_, Expression> {
+    alt((
+        parse_prefix_plus_plus,
+        parse_prefix_minus_minus,
         parse_not,
         parse_previous,
         parse_await_next,
@@ -699,9 +748,25 @@ fn parse_unary_op_expr(i: Span<'_>) -> Result<'_, Expression> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
+fn parse_prefix_plus_plus(i: Span<'_>) -> Result<'_, Expression> {
+    map(
+        tuple((tag("++"), comment_multispace0, boxed(parse_prefix_op_expr))),
+        |(_, _, expr)| Expression::PrefixPlusPlus(expr),
+    )(i)
+}
+
+#[cfg_attr(feature = "trace", tracable_parser)]
+fn parse_prefix_minus_minus(i: Span<'_>) -> Result<'_, Expression> {
+    map(
+        tuple((tag("--"), comment_multispace0, boxed(parse_prefix_op_expr))),
+        |(_, _, expr)| Expression::PrefixMinusMinus(expr),
+    )(i)
+}
+
+#[cfg_attr(feature = "trace", tracable_parser)]
 fn parse_not(i: Span<'_>) -> Result<'_, Expression> {
     map(
-        tuple((char(';'), comment_multispace0, boxed(parse_unary_op_expr))),
+        tuple((char(';'), comment_multispace0, boxed(parse_prefix_op_expr))),
         |(_, _, value)| Expression::Not(value),
     )(i)
 }
@@ -731,8 +796,14 @@ fn parse_await_next(i: Span<'_>) -> Result<'_, Expression> {
 #[cfg_attr(feature = "trace", tracable_parser)]
 fn parse_new(i: Span<'_>) -> Result<'_, Expression> {
     map(
-        tuple((tag("new"), comment_multispace1, parse_ident)),
-        |(_, _, class_name)| Expression::New(NewExpr { class_name }),
+        tuple((tag("new"), comment_multispace1, parse_free_fn_call)),
+        |(_, _, fn_call)| match fn_call {
+            Expression::FreeFnCall(FreeFnCallExpr {
+                fn_name: class_name,
+                params,
+            }) => Expression::New(NewExpr { class_name, params }),
+            _ => unreachable!(),
+        },
     )(i)
 }
 
@@ -744,6 +815,8 @@ fn parse_base_expr(i: Span<'_>) -> Result<'_, Expression> {
         parse_bool_lit_expr,
         parse_string_lit_expr,
         parse_numeric_lit_expr,
+        parse_null,
+        parse_undefined,
         map(
             tuple((
                 char('('),
@@ -800,6 +873,16 @@ fn parse_free_fn_call(i: Span<'_>) -> Result<'_, Expression> {
 }
 
 #[cfg_attr(feature = "trace", tracable_parser)]
+fn parse_null(i: Span<'_>) -> Result<'_, Expression> {
+    map(tag("null"), |_| Expression::Null)(i)
+}
+
+#[cfg_attr(feature = "trace", tracable_parser)]
+fn parse_undefined(i: Span<'_>) -> Result<'_, Expression> {
+    map(tag("undefined"), |_| Expression::Undefined)(i)
+}
+
+#[cfg_attr(feature = "trace", tracable_parser)]
 fn parse_bool_lit_expr(i: Span<'_>) -> Result<'_, Expression> {
     map(parse_bool_lit, Expression::BoolLit)(i)
 }
@@ -838,8 +921,12 @@ fn parse_string_lit(i: Span<'_>) -> Result<'_, StringLit> {
 #[cfg_attr(feature = "trace", tracable_parser)]
 fn parse_numeric_lit(i: Span<'_>) -> Result<'_, NumericLit> {
     map(
-        tuple((digit1, opt(tuple((tag("."), digit1))))),
-        |(whole, fractional)| NumericLit {
+        tuple((
+            digit1,
+            opt(tuple((tag("."), digit1))),
+            peek(verify(anychar, |char: &char| char.is_ascii())),
+        )),
+        |(whole, fractional, _)| NumericLit {
             digits: format!(
                 "{whole}{}",
                 match fractional {
@@ -865,7 +952,7 @@ fn parse_literal(i: Span<'_>) -> Result<'_, Literal> {
 
 #[cfg_attr(feature = "trace", tracable_parser)]
 fn parse_ident(i: Span<'_>) -> Result<'_, Ident> {
-    let (leftover, ident) = many1(none_of(" \t\r\n,("))(i)?;
+    let (leftover, ident) = many1(none_of(" \t\r\n,()"))(i)?;
 
     Ok((
         leftover,
@@ -880,6 +967,10 @@ fn parse_end_statement(i: Span<'_>) -> Result<'_, StatementTermination> {
     alt((
         map(char('?'), |_| StatementTermination::Debug),
         map(many1_count(char('!')), StatementTermination::Importance),
+        map(
+            tuple((space0, comment0, many0(char('\r')), char('\n'))),
+            |_| StatementTermination::Importance(0),
+        ),
     ))(i)
 }
 
@@ -898,6 +989,19 @@ fn comment_multispace1(i: Span<'_>) -> Result<'_, ()> {
                 |_| (),
             ),
         ))),
+        |_| (),
+    )(i)
+}
+
+#[cfg_attr(feature = "trace", tracable_parser)]
+pub fn comment0(i: Span<'_>) -> Result<()> {
+    map(opt(comment1), |_| ())(i)
+}
+
+#[cfg_attr(feature = "trace", tracable_parser)]
+fn comment1(i: Span<'_>) -> Result<'_, ()> {
+    map(
+        map(tuple((tag("//"), many0(none_of("\n")))), |_| ()),
         |_| (),
     )(i)
 }

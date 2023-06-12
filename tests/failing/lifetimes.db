@@ -1,0 +1,2 @@
+const const name<2> = "Luke"! //lasts for two lines
+const const name<20s> = "Luke"! //lasts for 20 seconds
